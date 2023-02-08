@@ -1,2 +1,2 @@
 #!/bin/bash
-rm -r /tmp/school
+rm -r /tmp/my_first_directory
