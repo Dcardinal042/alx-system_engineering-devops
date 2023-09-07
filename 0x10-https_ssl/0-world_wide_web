@@ -1,34 +1,30 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# script to report information about server domains
+# shellcheck disable=SC2086
+check_domain() {
+	# awk will use record seperator of space
+	# space sperated list of sub domains
+	SUBDOMAINS='www lb-01 web-01 web-02'
 
-# Function to query DNS records for a subdomain and extract relevant information
-query_dns() {
-    subdomain="$1.$2"
-    dns_output=$(dig $subdomain | grep -A1 'ANSWER SECTION:')
-    if [[ -n "$dns_output" ]]; then
-        record_type=$(echo "$dns_output" | awk '/IN\s/{print $4}')
-        destination=$(echo "$dns_output" | awk '/IN\s/{print $5}')
-        echo "The subdomain $subdomain is a $record_type record and points to $destination"
-    else
-        echo "No DNS record found for subdomain $subdomain"
-    fi
+	if [ -z "$1" ]; then
+		exit
+	fi
+	# no sub domain specified, do all
+	if [ -z "$2" ]; then
+		echo "$SUBDOMAINS" | awk -v domain="$1"\
+		'BEGIN { RS=" " }
+		{split($0,ARR," ");
+		cmd = "dig " ARR[1]"."domain " | grep -A1 \"ANSWER SECTION:\" | tail -n1";
+		system(cmd)
+		close(cmd)}' | awk\
+		'{
+		split($0, DOMS, ".");
+		print "The subdomain " DOMS[1] " is a " $4 " record and points to " $5}'
+	else
+		dig "$2.$1" | grep -A1 "ANSWER SECTION:" | tail -n1 | awk\
+		'{
+		split($0, DOMS, ".");
+		print "The subdomain " DOMS[1] " is a " $4 " record and points to " $5}'
+	fi
 }
-
-# Check the number of arguments
-if [ $# -lt 1 ]; then
-    echo "Usage: $0 <domain> [<subdomain>]"
-    exit 1
-fi
-
-domain="$1"
-
-# If subdomain is provided, query DNS for the specific subdomain
-if [ $# -eq 2 ]; then
-    subdomain="$2"
-    query_dns "$subdomain" "$domain"
-else
-    # Query DNS for default subdomains
-    query_dns "www" "$domain"
-    query_dns "lb-01" "$domain"
-    query_dns "web-01" "$domain"
-    query_dns "web-02" "$domain"
-fi
+check_domain "$1" "$2"
