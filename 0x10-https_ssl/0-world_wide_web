@@ -1,16 +1,34 @@
-#!/usr/bin/env bash
-# Script that displays information about subdomains.
+#!/bin/bash
 
-func () {
-    if [ -n "$2" ]
-    then
-	dig "$2.$1" | grep -A1 'ANSWER SECTION:' | paste - - | awk -v sd="$2" '{print "The subdomain " sd " is a " $7 " record and points to " $8}'
+# Function to query DNS records for a subdomain and extract relevant information
+query_dns() {
+    subdomain="$1.$2"
+    dns_output=$(dig $subdomain | grep -A1 'ANSWER SECTION:')
+    if [[ -n "$dns_output" ]]; then
+        record_type=$(echo "$dns_output" | awk '/IN\s/{print $4}')
+        destination=$(echo "$dns_output" | awk '/IN\s/{print $5}')
+        echo "The subdomain $subdomain is a $record_type record and points to $destination"
     else
-	dig "www.$1" | grep -A1 'ANSWER SECTION:' | paste - - | awk '{print "The subdomain www is a " $7 " record and points to " $8}'
-	dig "lb-01.$1" | grep -A1 'ANSWER SECTION:' | paste - - | awk '{print "The subdomain lb-01 is a " $7 " record and points to " $8}'
-	dig "web-01.$1" | grep -A1 'ANSWER SECTION:' | paste - - | awk '{print "The subdomain web-01 is a " $7 " record and points to " $8}'
-	dig "web-02.$1" | grep -A1 'ANSWER SECTION:' | paste - - | awk '{print "The subdomain web-02 is a " $7 " record and points to " $8}'
+        echo "No DNS record found for subdomain $subdomain"
     fi
 }
 
-func "$1" "$2"
+# Check the number of arguments
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 <domain> [<subdomain>]"
+    exit 1
+fi
+
+domain="$1"
+
+# If subdomain is provided, query DNS for the specific subdomain
+if [ $# -eq 2 ]; then
+    subdomain="$2"
+    query_dns "$subdomain" "$domain"
+else
+    # Query DNS for default subdomains
+    query_dns "www" "$domain"
+    query_dns "lb-01" "$domain"
+    query_dns "web-01" "$domain"
+    query_dns "web-02" "$domain"
+fi
