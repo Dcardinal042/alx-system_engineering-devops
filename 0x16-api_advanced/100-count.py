@@ -1,54 +1,51 @@
-#!/usr/bin/python3
-"""Function to count words in all hot posts of a given Reddit subreddit."""
 import requests
 
-
-def count_words(subreddit, word_list, instances={}, after="", count=0):
-    """Prints counts of given words found in hot posts of a given subreddit.
-    Args:
-        subreddit (str): The subreddit to search.
-        word_list (list): The list of words to search for in post titles.
-        instances (obj): Key/value pairs of words/counts.
-        after (str): The parameter for the next page of the API results.
-        count (int): The parameter of results matched thus far.
-    """
-    url = "https://www.reddit.com/r/{}/hot/.json".format(subreddit)
-    headers = {
-        "User-Agent": "linux:0x16.api.advanced:v1.0.0 (by /u/bdov_)"
-    }
-    params = {
-        "after": after,
-        "count": count,
-        "limit": 100
-    }
-    response = requests.get(url, headers=headers, params=params,
-                            allow_redirects=False)
-    try:
-        results = response.json()
-        if response.status_code == 404:
-            raise Exception
-    except Exception:
-        print("")
+def count_words(subreddit, word_list, after=None, counts={}):
+    if not word_list:
         return
 
-    results = results.get("data")
-    after = results.get("after")
-    count += results.get("dist")
-    for c in results.get("children"):
-        title = c.get("data").get("title").lower().split()
-        for word in word_list:
-            if word.lower() in title:
-                times = len([t for t in title if t == word.lower()])
-                if instances.get(word) is None:
-                    instances[word] = times
-                else:
-                    instances[word] += times
+    if after is None:
+        url = "https://www.reddit.com/r/{}/hot.json".format(subreddit)
+    else:
+        url = "https://www.reddit.com/r/{}/hot.json?after={}".format(subreddit, after)
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"}
+
+    try:
+        response = requests.get(url, headers=headers, allow_redirects=False)
+
+        if response.status_code != 200:
+            return
+
+        data = response.json()
+        children = data.get('data', {}).get('children', [])
+        after = data.get('data', {}).get('after', None)
+
+        for child in children:
+            title = child.get('data', {}).get('title', "").lower()
+            for word in word_list:
+                if " " + word.lower() + " " in title:
+                    counts[word] = counts.get(word, 0) + title.count(" " + word.lower() + " ")
+
+        count_words(subreddit, word_list, after, counts)
+
+    except Exception:
+        return
 
     if after is None:
-        if len(instances) == 0:
-            print("")
-            return
-        instances = sorted(instances.items(), key=lambda kv: (-kv[1], kv[0]))
-        [print("{}: {}".format(k, v)) for k, v in instances]
+        sorted_counts = sorted(counts.items(), key=lambda x: (-x[1], x[0]))
+        for word, count in sorted_counts:
+            print("{}: {}".format(word, count))
+
+if __name__ == "__main__":
+    import sys
+
+    if len(sys.argv) < 3:
+        print("Usage: {} <subreddit> <list of keywords>".format(sys.argv[0]))
+        print("Example: {} programming 'python java javascript'".format(sys.argv[0]))
     else:
-        count_words(subreddit, word_list, instances, after, count)
+        subreddit = sys.argv[1]
+        keywords = sys.argv[2].split()
+        count_words(subreddit, keywords)
+
