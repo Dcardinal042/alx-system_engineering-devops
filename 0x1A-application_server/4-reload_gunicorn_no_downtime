@@ -1,0 +1,57 @@
+#replace e following values with your own configuration
+GUNICORN_PIDFILE="/path/to/gunicorn.pid"
+GUNICORN_BIN="/path/to/gunicorn"
+GUNICORN_WORKERS=4
+
+# Function to gracefully reload Gunicorn
+graceful_reload() {
+    if [ -f "$GUNICORN_PIDFILE" ]; then
+        echo "Gracefully reloading Gunicorn..."
+        kill -HUP $(cat "$GUNICORN_PIDFILE")
+    else
+        echo "Gunicorn is not running or PID file not found. Starting Gunicorn..."
+        $GUNICORN_BIN --bind 0.0.0.0:8001 --workers $GUNICORN_WORKERS web_flask.0-hello_route:app --daemon --pid="$GUNICORN_PIDFILE"
+    fi
+}
+
+# Check if Gunicorn is running
+if pgrep -f "$GUNICORN_BIN" > /dev/null; then
+    # Perform a graceful reload
+    graceful_reload
+else
+    # Start Gunicorn if it's not running
+    echo "Gunicorn is not running. Starting Gunicorn..."
+    $GUNICORN_BIN --bind 0.0.0.0:8001 --workers $GUNICORN_WORKERS web_flask.0-hello_route:app --daemon --pid="$GUNICORN_PIDFILE"
+fi
+
+echo "Gunicorn reload complete."
+#!/bin/bash
+
+# Replace the following values with your own configuration
+GUNICORN_PIDFILE="/path/to/gunicorn.pid"
+GUNICORN_BIN="/path/to/gunicorn"
+GUNICORN_WORKERS=4
+
+# Function to gracefully reload Gunicorn
+graceful_reload() {
+    if [ -f "$GUNICORN_PIDFILE" ]; then
+        echo "Gracefully reloading Gunicorn..."
+        kill -HUP $(cat "$GUNICORN_PIDFILE")
+    else
+        echo "Gunicorn is not running or PID file not found. Starting Gunicorn..."
+        $GUNICORN_BIN --bind 0.0.0.0:8001 --workers $GUNICORN_WORKERS web_flask.0-hello_route:app --daemon --pid="$GUNICORN_PIDFILE"
+    fi
+}
+
+# Check if Gunicorn is running
+if pgrep -f "$GUNICORN_BIN" > /dev/null; then
+    # Perform a graceful reload
+    graceful_reload
+else
+    # Start Gunicorn if it's not running
+    echo "Gunicorn is not running. Starting Gunicorn..."
+    $GUNICORN_BIN --bind 0.0.0.0:8001 --workers $GUNICORN_WORKERS web_flask.0-hello_route:app --daemon --pid="$GUNICORN_PIDFILE"
+fi
+
+echo "Gunicorn reload complete."
+
